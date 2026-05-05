@@ -32,11 +32,6 @@ const speak = (text: string) => {
   window.speechSynthesis.speak(utt);
 };
 
-// SpeechRecognition typings (Web Speech API)
-type SpeechRecognitionType = typeof window extends { SpeechRecognition: infer T }
-  ? T
-  : never;
-
 function getRecognitionConstructor(): (new () => SpeechRecognition) | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as {

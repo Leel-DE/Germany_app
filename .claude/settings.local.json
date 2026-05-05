@@ -5,7 +5,11 @@
       "Bash(npx create-next-app@latest deutschmaster --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --use-npm)",
       "Bash(npm install *)",
       "mcp__Claude_Preview__preview_start",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(git checkout *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --title 'feat: Speaking section with AI roleplay dialogues' --body ' *)",
+      "PowerShell(gh --version)"
     ]
   }
 }

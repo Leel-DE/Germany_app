@@ -47,6 +47,8 @@ export interface Word {
   example_ru?: string;
   audio_url?: string;
   notes?: string;
+  grammarInfo?: string;
+  frequencyLevel?: "low" | "medium" | "high";
   is_system: boolean;
   created_at: string;
   verb_data?: VerbData;
@@ -143,13 +145,18 @@ export interface GrammarProgress {
 
 // ─── Daily Plan ───────────────────────────────────────────────────────────────
 
-export type PlanStepType = "srs_review" | "new_words" | "grammar" | "reading" | "writing" | "mini_test" | "listening";
+export type PlanStepType = "vocabulary_review" | "new_words" | "grammar" | "reading" | "writing" | "test";
 export type PlanStatus = "pending" | "in_progress" | "completed" | "skipped";
+export type PlanStepStatus = "pending" | "in_progress" | "completed";
 
 export interface PlanStep {
+  id: string;
   type: PlanStepType;
   label: string;
   estimatedMinutes: number;
+  status: PlanStepStatus;
+  order: number;
+  payload: Record<string, unknown>;
   wordIds?: string[];
   topicSlug?: string;
   topicId?: string;
@@ -157,6 +164,16 @@ export interface PlanStep {
   templateId?: string;
   questions?: MiniTestQuestion[];
   count?: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  result?: {
+    correctAnswers?: number;
+    totalAnswers?: number;
+    accuracy?: number;
+    wordsLearned?: number;
+    wordsReviewed?: number;
+    timeSpentMinutes?: number;
+  } | null;
 }
 
 export interface DailyPlan {
@@ -231,6 +248,9 @@ export interface UserSettings {
   daily_goal_minutes: number;
   current_level: CEFRLevel;
   target_level: CEFRLevel;
+  profession?: string | null;
+  weak_areas: string[];
+  preferred_topics: string[];
   interface_theme: "light" | "dark" | "system";
   streak_count: number;
   streak_last_date?: string;
@@ -285,4 +305,22 @@ export interface ReadingText {
   questions?: MiniTestQuestion[];
   audio_url?: string;
   created_at: string;
+  progress?: ReadingProgress | null;
+  recommended?: boolean;
+  recommendation_score?: number;
+  recommendation_reason?: string | null;
+}
+
+export interface ReadingProgress {
+  id: string;
+  user_id: string;
+  text_id: string;
+  status: "completed";
+  score: number;
+  correct_count: number;
+  questions_total: number;
+  answers: Record<string, number>;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at: string;
 }

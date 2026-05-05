@@ -6,21 +6,20 @@
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS user_settings (
-  user_id            UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id            TEXT PRIMARY KEY,
   daily_goal_words   INT DEFAULT 10,
   daily_goal_minutes INT DEFAULT 30,
   current_level      TEXT DEFAULT 'A2',
   target_level       TEXT DEFAULT 'B1',
+  profession         TEXT,
+  weak_areas         TEXT[] DEFAULT '{}',
+  preferred_topics   TEXT[] DEFAULT '{}',
   interface_theme    TEXT DEFAULT 'system',
   streak_count       INT DEFAULT 0,
   streak_last_date   DATE,
   total_study_days   INT DEFAULT 0,
   updated_at         TIMESTAMPTZ DEFAULT NOW()
 );
-
-ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own settings" ON user_settings
-  FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================================
 -- VOCABULARY
@@ -205,23 +204,6 @@ CREATE TABLE IF NOT EXISTS user_writings (
 ALTER TABLE user_writings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own writings" ON user_writings
   FOR ALL USING (auth.uid() = user_id);
-
--- ============================================================
--- READING
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS reading_texts (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title           TEXT NOT NULL,
-  content         TEXT NOT NULL,
-  cefr_level      TEXT NOT NULL,
-  topic           TEXT NOT NULL,
-  word_count      INT,
-  read_time_min   INT,
-  questions       JSONB DEFAULT '[]',
-  audio_url       TEXT,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
-);
 
 -- ============================================================
 -- STATS

@@ -1,75 +1,102 @@
 "use client";
-import { useState } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Volume2, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { AlertCircle, BookOpen, Loader2, Plus, Search, Sparkles, Trash2, Volume2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { cn, getArticleColor } from "@/lib/utils";
-import type { Word, CEFRLevel, WordType } from "@/types";
+import type { CEFRLevel, Word, WordType } from "@/types";
+import { useTranslations } from "next-intl";
 
-// Demo words
-const DEMO_WORDS: Word[] = [
-  {
-    id: "1", german: "die Wohnung", translation_ru: "квартира", translation_en: "apartment",
-    article: "die", plural: "die Wohnungen", word_type: "noun", cefr_level: "A2",
-    topic: "Wohnung", frequency_rank: 312, example_de: "Ich miete eine Wohnung in der Stadtmitte.",
-    example_ru: "Я снимаю квартиру в центре города.", is_system: true, created_at: new Date().toISOString()
-  },
-  {
-    id: "2", german: "arbeiten", translation_ru: "работать", translation_en: "to work",
-    word_type: "verb", cefr_level: "A1", topic: "Arbeit", frequency_rank: 45,
-    example_de: "Ich arbeite in einem Büro.", example_ru: "Я работаю в офисе.",
-    is_system: true, created_at: new Date().toISOString()
-  },
-  {
-    id: "3", german: "der Termin", translation_ru: "встреча, запись", translation_en: "appointment",
-    article: "der", plural: "die Termine", word_type: "noun", cefr_level: "A2",
-    topic: "Alltag", frequency_rank: 520, example_de: "Ich habe einen Termin beim Arzt.",
-    example_ru: "У меня запись к врачу.", is_system: true, created_at: new Date().toISOString()
-  },
-  {
-    id: "4", german: "beantragen", translation_ru: "подавать заявление, оформлять",
-    translation_en: "to apply for", word_type: "verb", cefr_level: "B1",
-    topic: "Behörden", frequency_rank: 1240, example_de: "Ich möchte einen Personalausweis beantragen.",
-    example_ru: "Я хочу оформить удостоверение личности.", is_system: true, created_at: new Date().toISOString()
-  },
-  {
-    id: "5", german: "das Krankenhaus", translation_ru: "больница", translation_en: "hospital",
-    article: "das", plural: "die Krankenhäuser", word_type: "noun", cefr_level: "A2",
-    topic: "Gesundheit", frequency_rank: 680, example_de: "Er liegt im Krankenhaus.",
-    example_ru: "Он лежит в больнице.", is_system: true, created_at: new Date().toISOString()
-  },
-  {
-    id: "6", german: "die Bewerbung", translation_ru: "заявление о приёме на работу",
-    translation_en: "job application", article: "die", plural: "die Bewerbungen",
-    word_type: "noun", cefr_level: "B1", topic: "Arbeit", frequency_rank: 890,
-    example_de: "Ich schreibe eine Bewerbung für die Stelle.", example_ru: "Я пишу заявление на эту должность.",
-    is_system: true, created_at: new Date().toISOString()
-  },
-];
+const LEVELS: (CEFRLevel | "All")[] = ["All", "A1", "A2", "B1", "B2"];
 
-const TOPICS = ["Все", "Wohnung", "Arbeit", "Alltag", "Behörden", "Gesundheit", "Reisen"];
-const LEVELS: (CEFRLevel | "Все")[] = ["Все", "A1", "A2", "B1", "B2"];
+type VocabularyWord = Word & { word_type: WordType };
+type Notice = { type: "success" | "error"; text: string } | null;
 
 export default function VocabularyPage() {
+  const t = useTranslations("vocabulary");
+  const loadErrorText = t("loadError");
+  const [words, setWords] = useState<VocabularyWord[]>([]);
   const [search, setSearch] = useState("");
-  const [activeTopic, setActiveTopic] = useState("Все");
-  const [activeLevel, setActiveLevel] = useState<CEFRLevel | "Все">("Все");
-  const [activeType] = useState<WordType | "Все">("Все");
+  const [activeLevel, setActiveLevel] = useState<CEFRLevel | "All">("All");
+  const [activeTopic, setActiveTopic] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<Notice>(null);
+  const [deleteTarget, setDeleteTarget] = useState<VocabularyWord | null>(null);
 
-  const filtered = DEMO_WORDS.filter((w) => {
-    const matchSearch = !search ||
-      w.german.toLowerCase().includes(search.toLowerCase()) ||
-      w.translation_ru.toLowerCase().includes(search.toLowerCase());
-    const matchTopic = activeTopic === "Все" || w.topic === activeTopic;
-    const matchLevel = activeLevel === "Все" || w.cefr_level === activeLevel;
-    const matchType = activeType === "Все" || w.word_type === activeType;
-    return matchSearch && matchTopic && matchLevel && matchType;
-  });
+  const loadWords = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (activeLevel !== "All") params.set("level", activeLevel);
+    if (activeTopic !== "All") params.set("topic", activeTopic);
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/vocabulary?${params.toString()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(loadErrorText);
+      const data = await res.json();
+      setWords(data.words ?? []);
+      setNotice(null);
+    } catch (error) {
+      setNotice({ type: "error", text: error instanceof Error ? error.message : loadErrorText });
+    } finally {
+      setLoading(false);
+    }
+  }, [activeLevel, activeTopic, loadErrorText, search]);
+
+  useEffect(() => {
+    void loadWords();
+  }, [loadWords]);
+
+  const topics = useMemo(() => ["All", ...Array.from(new Set(words.map((word) => word.topic).filter(Boolean)))], [words]);
+
+  const generateWords = async () => {
+    setGenerating(true);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/vocabulary/generate-ai", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? t("generateError"));
+      setWords((prev) => mergeWords(data.words ?? [], prev));
+      setNotice({ type: "success", text: t("generatedCount", { count: data.created ?? 0 }) });
+    } catch (error) {
+      setNotice({ type: "error", text: error instanceof Error ? error.message : t("generateError") });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const deleteWord = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/vocabulary/${deleteTarget.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? t("deleteError"));
+      setWords((prev) => prev.filter((word) => word.id !== deleteTarget.id));
+      setNotice({ type: "success", text: data.deleted === "word" ? t("personalDeleted") : t("removedFromVocab") });
+      setDeleteTarget(null);
+    } catch (error) {
+      setNotice({ type: "error", text: error instanceof Error ? error.message : t("deleteError") });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const speak = (text: string) => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
+    if (window.speechSynthesis) {
       const utt = new SpeechSynthesisUtterance(text);
       utt.lang = "de-DE";
       window.speechSynthesis.speak(utt);
@@ -78,125 +105,141 @@ export default function VocabularyPage() {
 
   return (
     <div className="space-y-4 animate-fade-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Словарь</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{DEMO_WORDS.length} слов · 847 выучено</p>
+          <h1 className="text-xl font-bold">{t("title")}</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t("wordsFromDb", { count: words.length })}</p>
         </div>
-        <Link href="/vocabulary/add">
-          <Button size="sm" className="gap-1.5">
-            <Plus className="w-3.5 h-3.5" />
-            Добавить
+        <div className="flex shrink-0 gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5" disabled={generating} onClick={generateWords}>
+            {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{t("generate20")}</span>
+            <span className="sm:hidden">AI</span>
           </Button>
-        </Link>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Поиск: квартира, arbeiten..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      {/* Level filter */}
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-        {LEVELS.map((level) => (
-          <button
-            key={level}
-            onClick={() => setActiveLevel(level)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all",
-              activeLevel === level
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {level}
-          </button>
-        ))}
-      </div>
-
-      {/* Topic filter */}
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-        {TOPICS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setActiveTopic(t)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
-              activeTopic === t
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-transparent bg-muted text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* Words list */}
-      <div className="space-y-2">
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Ничего не найдено</p>
-          </div>
-        )}
-        {filtered.map((word) => (
-          <Link key={word.id} href={`/vocabulary/${word.id}`}>
-            <div className="rounded-2xl border border-border bg-card p-4 hover:shadow-md transition-all active:scale-[0.99] group">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {word.article && (
-                      <span className={cn("text-sm font-semibold", getArticleColor(word.article))}>
-                        {word.article}
-                      </span>
-                    )}
-                    <span className="text-base font-bold">{word.german.replace(/^(der|die|das)\s/i, "")}</span>
-                    {word.plural && (
-                      <span className="text-xs text-muted-foreground">· {word.plural}</span>
-                    )}
-                    <Badge
-                      variant={word.cefr_level.toLowerCase() as "a1" | "a2" | "b1" | "b2"}
-                      className="ml-auto"
-                    >
-                      {word.cefr_level}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">{word.translation_ru}</p>
-                  {word.example_de && (
-                    <p className="text-xs text-muted-foreground/70 mt-1.5 italic line-clamp-1">
-                      {word.example_de}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={(e) => { e.preventDefault(); speak(word.german); }}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all shrink-0 mt-0.5"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              {word.topic && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    {word.topic}
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
-                    {word.word_type}
-                  </span>
-                </div>
-              )}
-            </div>
+          <Link href="/vocabulary/add">
+            <Button size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" />{t("add")}</Button>
           </Link>
+        </div>
+      </div>
+
+      {notice && (
+        <div
+          className={cn(
+            "flex items-start gap-2 rounded-lg px-3 py-2 text-sm",
+            notice.type === "success" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+          )}
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{notice.text}</span>
+        </div>
+      )}
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder={t("searchPlaceholder")} className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
+      <FilterRow values={LEVELS} active={activeLevel} onSelect={(value) => setActiveLevel(value as CEFRLevel | "All")} />
+      <FilterRow values={topics as string[]} active={activeTopic} onSelect={setActiveTopic} />
+
+      {loading && <State icon={<Loader2 className="h-6 w-6 animate-spin" />} text={t("loading")} />}
+      {!loading && words.length === 0 && <State icon={<BookOpen className="h-6 w-6" />} text={t("noWords")} />}
+
+      <div className="space-y-2">
+        {words.map((word) => (
+          <WordRow key={word.id} word={word} onSpeak={speak} onDelete={setDeleteTarget} />
         ))}
       </div>
+
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("deleteTitle")}</DialogTitle>
+            <DialogDescription>
+              {deleteTarget?.is_system
+                ? t("deleteGlobal")
+                : t("deletePersonal")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" disabled={deleting} onClick={() => setDeleteTarget(null)}>
+              {t("cancel")}
+            </Button>
+            <Button variant="destructive" className="flex-1" disabled={deleting} onClick={deleteWord}>
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function FilterRow({ values, active, onSelect }: { values: string[]; active: string; onSelect: (value: string) => void }) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+      {values.map((value) => (
+        <button
+          key={value}
+          onClick={() => onSelect(value)}
+          className={cn(
+            "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+            active === value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {value}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function WordRow({ word, onSpeak, onDelete }: {
+  word: VocabularyWord;
+  onSpeak: (text: string) => void;
+  onDelete: (word: VocabularyWord) => void;
+}) {
+  return (
+    <Link href={`/vocabulary/${word.id}`}>
+      <div className="rounded-lg border border-border bg-card p-4 transition-all hover:shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              {word.article && <span className={cn("text-sm font-semibold", getArticleColor(word.article))}>{word.article}</span>}
+              <span className="font-bold">{word.german.replace(/^(der|die|das)\s/i, "")}</span>
+              <Badge variant={word.cefr_level.toLowerCase() as "a1" | "a2" | "b1" | "b2"}>{word.cefr_level}</Badge>
+              {!word.is_system && <Badge variant="outline">AI</Badge>}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{word.translation_ru}</p>
+            {word.example_de && <p className="mt-1.5 line-clamp-1 text-xs italic text-muted-foreground/70">{word.example_de}</p>}
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <button
+              onClick={(event) => { event.preventDefault(); onSpeak(word.german); }}
+              aria-label="Speak"
+              className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
+            >
+              <Volume2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={(event) => { event.preventDefault(); onDelete(word); }}
+              aria-label="Delete"
+              className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function State({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return <div className="grid place-items-center gap-2 py-12 text-sm text-muted-foreground">{icon}<p>{text}</p></div>;
+}
+
+function mergeWords(created: VocabularyWord[], current: VocabularyWord[]) {
+  const existing = new Set(current.map((word) => word.id));
+  return [...created.filter((word) => !existing.has(word.id)), ...current];
 }
