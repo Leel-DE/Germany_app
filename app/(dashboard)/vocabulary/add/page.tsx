@@ -1,126 +1,127 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
-const TOPICS = ["Wohnung", "Arbeit", "Alltag", "Behörden", "Gesundheit", "Reisen", "Andere"];
 const LEVELS = ["A1", "A2", "B1", "B2"];
-const TYPES = [
-  { value: "noun", label: "Существительное" },
-  { value: "verb", label: "Глагол" },
-  { value: "adjective", label: "Прилагательное" },
-  { value: "adverb", label: "Наречие" },
-  { value: "phrase", label: "Фраза" },
-];
+const TYPES = ["noun", "verb", "adjective", "adverb", "phrase", "preposition", "conjunction"];
 
 export default function AddWordPage() {
   const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("vocabulary");
   const [form, setForm] = useState({
-    german: "", article: "", plural: "", translation_ru: "", translation_en: "",
-    word_type: "noun", cefr_level: "A2", topic: "Alltag", example_de: "", example_ru: "", notes: ""
+    german: "",
+    article: "",
+    plural: "",
+    translation_ru: "",
+    word_type: "noun",
+    cefr_level: "A2",
+    topic: "Alltag",
+    example_de: "",
+    example_ru: "",
+    notes: "",
   });
 
-  const set = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
+  const set = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    const res = await fetch("/api/vocabulary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? t("saveError"));
+      setSaving(false);
+      return;
+    }
+    router.push("/vocabulary");
+    router.refresh();
+  };
 
   return (
     <div className="space-y-4 animate-fade-slide-up">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon-sm" onClick={() => router.push("/vocabulary")}>
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-lg font-bold">Добавить слово</h1>
+        <h1 className="text-lg font-bold">{t("addWord")}</h1>
       </div>
 
-      {/* Word type */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">Тип слова</p>
-        <div className="flex gap-2 flex-wrap">
-          {TYPES.map(t => (
-            <button key={t.value} onClick={() => set("word_type", t.value)}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all",
-                form.word_type === t.value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted")}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <Field label={t("german")}>
+        <Input value={form.german} onChange={(e) => set("german", e.target.value)} placeholder="Wohnung" />
+      </Field>
+
+      <div className="grid grid-cols-3 gap-2">
+        {["der", "die", "das"].map((article) => (
+          <Button key={article} type="button" variant={form.article === article ? "default" : "outline"} onClick={() => set("article", article)}>
+            {article}
+          </Button>
+        ))}
       </div>
 
-      {/* German */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">Немецкое слово</p>
-        {form.word_type === "noun" && (
-          <div className="grid grid-cols-3 gap-2">
-            {["der","die","das"].map(art => (
-              <button key={art} onClick={() => set("article", art)}
-                className={cn("py-2 rounded-xl border-2 text-sm font-bold transition-all",
-                  form.article === art ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted",
-                  art === "der" && "hover:text-blue-600", art === "die" && "hover:text-red-500", art === "das" && "hover:text-green-600")}>
-                {art}
-              </button>
-            ))}
-          </div>
-        )}
-        <Input placeholder="z.B. Wohnung" value={form.german} onChange={e => set("german", e.target.value)} className="text-base" />
-        {form.word_type === "noun" && (
-          <Input placeholder="Plural: z.B. die Wohnungen" value={form.plural} onChange={e => set("plural", e.target.value)} />
-        )}
+      <Field label={t("plural")}>
+        <Input value={form.plural} onChange={(e) => set("plural", e.target.value)} placeholder="die Wohnungen" />
+      </Field>
+
+      <Field label={t("translation")}>
+        <Input value={form.translation_ru} onChange={(e) => set("translation_ru", e.target.value)} placeholder="квартира" />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={t("type")}>
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.word_type} onChange={(e) => set("word_type", e.target.value)}>
+            {TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
+        </Field>
+        <Field label={t("level")}>
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.cefr_level} onChange={(e) => set("cefr_level", e.target.value)}>
+            {LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+          </select>
+        </Field>
       </div>
 
-      {/* Translation */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">Перевод</p>
-        <Input placeholder="Перевод на русский *" value={form.translation_ru} onChange={e => set("translation_ru", e.target.value)} />
-        <Input placeholder="English translation (необязательно)" value={form.translation_en} onChange={e => set("translation_en", e.target.value)} />
-      </div>
+      <Field label={t("topic")}>
+        <Input value={form.topic} onChange={(e) => set("topic", e.target.value)} placeholder="Alltag" />
+      </Field>
 
-      {/* Level & Topic */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">Уровень и тема</p>
-        <div className="flex gap-2">
-          {LEVELS.map(l => (
-            <button key={l} onClick={() => set("cefr_level", l)}
-              className={cn("flex-1 py-2 rounded-xl border-2 text-xs font-bold transition-all",
-                form.cefr_level === l ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted text-muted-foreground")}>
-              {l}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {TOPICS.map(t => (
-            <button key={t} onClick={() => set("topic", t)}
-              className={cn("px-3 py-1.5 rounded-full text-xs border transition-all",
-                form.topic === t ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted")}>
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Field label={t("exampleDe")}>
+        <Input value={form.example_de} onChange={(e) => set("example_de", e.target.value)} placeholder="Ich suche eine Wohnung." />
+      </Field>
 
-      {/* Example */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">Пример (необязательно)</p>
-        <Input placeholder="Немецкий пример: Ich suche eine Wohnung." value={form.example_de} onChange={e => set("example_de", e.target.value)} className="italic" />
-        <Input placeholder="Перевод примера: Я ищу квартиру." value={form.example_ru} onChange={e => set("example_ru", e.target.value)} />
-      </div>
+      <Field label={t("exampleTranslation")}>
+        <Input value={form.example_ru} onChange={(e) => set("example_ru", e.target.value)} placeholder="Я ищу квартиру." />
+      </Field>
 
-      {/* Notes */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground">Заметки</p>
-        <Textarea placeholder="Дополнительные заметки, связанные слова..." value={form.notes} onChange={e => set("notes", e.target.value)} className="min-h-[80px]" />
-      </div>
+      <Field label={t("notes")}>
+        <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} className="min-h-[90px]" />
+      </Field>
 
-      <Button
-        className="w-full h-12 gap-2"
-        disabled={!form.german || !form.translation_ru}
-        onClick={() => { alert("В production: сохранение в Supabase. Пока demo."); router.push("/vocabulary"); }}
-      >
-        <Plus className="w-4 h-4" />
-        Добавить слово
+      {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+
+      <Button className="h-12 w-full gap-2" disabled={!form.german || !form.translation_ru || saving} onClick={save}>
+        <Plus className="h-4 w-4" />
+        {saving ? t("saving") : t("saveToDb")}
       </Button>
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
+    </label>
   );
 }

@@ -1,54 +1,58 @@
-import Link from "next/link";
-import { FileText, ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { WRITING_TEMPLATES } from "@/lib/data/writingTemplates";
+"use client";
 
-const TOPIC_EMOJI: Record<string, string> = {
-  Wohnung: "🏠", Behörden: "🏛️", Arbeit: "💼", Gesundheit: "🏥",
-  Alltag: "🛒", Reisen: "✈️",
-};
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronRight, FileText, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { WritingTemplate } from "@/types";
+import { useTranslations } from "next-intl";
 
 export default function WritingPage() {
+  const t = useTranslations("writing");
+  const [tasks, setTasks] = useState<WritingTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/writing/tasks", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setTasks(data.tasks ?? []))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="space-y-5 animate-fade-slide-up">
       <div>
-        <h1 className="text-xl font-bold">Письмо</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Практика письменного немецкого с AI-проверкой
-        </p>
+        <h1 className="text-xl font-bold">{t("title")}</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">{t("subtitle")}</p>
       </div>
 
-      <div className="rounded-2xl border border-secondary/20 bg-secondary/5 p-4">
-        <p className="text-sm font-semibold text-secondary mb-1">🤖 AI-проверка писем</p>
-        <p className="text-xs text-muted-foreground">Напишите письмо — AI найдёт ошибки, объяснит их на русском и предложит улучшения</p>
-      </div>
+      {loading && <State><Loader2 className="h-6 w-6 animate-spin" /></State>}
+      {!loading && tasks.length === 0 && <State><FileText className="h-6 w-6" />{t("noTasks")}</State>}
 
       <div className="space-y-2">
-        {WRITING_TEMPLATES.map((template) => (
-          <Link key={template.id} href={`/writing/${template.id}`}>
-            <div className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-card hover:shadow-sm transition-all active:scale-[0.99]">
-              <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center text-2xl shrink-0">
-                {TOPIC_EMOJI[template.topic] ?? "📝"}
+        {tasks.map((task) => (
+          <Link key={task.id} href={`/writing/${task.id}`}>
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all hover:shadow-sm">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <FileText className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm leading-snug">{template.title}</p>
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  <Badge variant={template.cefr_level.toLowerCase() as "b1"|"b2"}>{template.cefr_level}</Badge>
-                  <Badge variant="muted">{template.topic}</Badge>
-                  <Badge variant="outline" className="capitalize">{template.type}</Badge>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-snug">{task.title}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <Badge variant={task.cefr_level.toLowerCase() as "a1" | "a2" | "b1" | "b2"}>{task.cefr_level}</Badge>
+                  <Badge variant="muted">{task.topic}</Badge>
+                  <Badge variant="outline" className="capitalize">{task.type}</Badge>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40" />
             </div>
           </Link>
         ))}
       </div>
-
-      <div className="rounded-2xl border border-border bg-card p-4 text-center">
-        <FileText className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
-        <p className="text-sm font-medium">Мои письма</p>
-        <p className="text-xs text-muted-foreground mt-0.5">История проверенных писем появится здесь</p>
-      </div>
     </div>
   );
+}
+
+function State({ children }: { children: React.ReactNode }) {
+  return <div className="grid min-h-[30vh] place-items-center gap-2 text-center text-sm text-muted-foreground">{children}</div>;
 }

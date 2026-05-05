@@ -1,19 +1,21 @@
 import { ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getTranslations } from "next-intl/server";
 
-export default function TestsPage() {
+export default async function TestsPage() {
+  const t = await getTranslations("tests");
   return (
     <div className="space-y-5 animate-fade-slide-up">
       <div>
-        <h1 className="text-xl font-bold">Тесты</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Проверь свои знания</p>
+        <h1 className="text-xl font-bold">{t("title")}</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("subtitle")}</p>
       </div>
       <div className="space-y-2">
         {[
-          { title: "Тест на уровень A2/B1", desc: "40 вопросов · ~20 мин", level: "A2", ready: false },
-          { title: "Грамматика: Падежи", desc: "20 вопросов · ~10 мин", level: "A2", ready: false },
-          { title: "Словарный запас B1", desc: "30 вопросов · ~15 мин", level: "B1", ready: false },
+          { title: t("levelTestTitle"), desc: t("levelTestDesc"), level: "A2", ready: false },
+          { title: t("casesTestTitle"), desc: t("casesTestDesc"), level: "A2", ready: false },
+          { title: t("vocabTestTitle"), desc: t("vocabTestDesc"), level: "B1", ready: false },
         ].map((test) => (
           <div key={test.title} className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-card">
             <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
@@ -26,7 +28,7 @@ export default function TestsPage() {
                 <span className="text-xs text-muted-foreground">{test.desc}</span>
               </div>
             </div>
-            <Button size="sm" variant="outline" disabled>Скоро</Button>
+            <Button size="sm" variant="outline" disabled>{t("soon")}</Button>
           </div>
         ))}
       </div>

@@ -3,29 +3,35 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, Layers, GraduationCap, FileText,
-  Headphones, Mic, ClipboardList, Bot, BarChart2, Settings, Flame, Sun, Moon
+  Headphones, Mic, ClipboardList, Bot, BarChart2, Settings, Flame, Sun, Moon, LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useTranslations } from "next-intl";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 
 const navItems = [
-  { href: "/home", icon: LayoutDashboard, label: "Главная" },
-  { href: "/daily-plan", icon: Layers, label: "Занятие дня", highlight: true },
-  { href: "/vocabulary", icon: BookOpen, label: "Словарь" },
-  { href: "/srs", icon: Flame, label: "Повторение" },
-  { href: "/grammar", icon: GraduationCap, label: "Грамматика" },
-  { href: "/writing", icon: FileText, label: "Письмо" },
-  { href: "/reading", icon: BookOpen, label: "Чтение" },
-  { href: "/listening", icon: Headphones, label: "Аудирование" },
-  { href: "/speaking", icon: Mic, label: "Разговор" },
-  { href: "/tests", icon: ClipboardList, label: "Тесты" },
-  { href: "/ai-tutor", icon: Bot, label: "AI-тьютор" },
-  { href: "/progress", icon: BarChart2, label: "Прогресс" },
-];
+  { href: "/home", icon: LayoutDashboard, key: "home" },
+  { href: "/daily-plan", icon: Layers, key: "dailyPlan", highlight: true },
+  { href: "/vocabulary", icon: BookOpen, key: "vocabulary" },
+  { href: "/srs", icon: Flame, key: "srs" },
+  { href: "/grammar", icon: GraduationCap, key: "grammar" },
+  { href: "/writing", icon: FileText, key: "writing" },
+  { href: "/reading", icon: BookOpen, key: "reading" },
+  { href: "/listening", icon: Headphones, key: "listening" },
+  { href: "/speaking", icon: Mic, key: "speaking" },
+  { href: "/tests", icon: ClipboardList, key: "tests" },
+  { href: "/ai-tutor", icon: Bot, key: "aiTutor" },
+  { href: "/progress", icon: BarChart2, key: "progress" },
+] as const;
 
 export function Sidebar() {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
+  const { logout } = useAuth();
+  const tNav = useTranslations("navigation");
+  const tCommon = useTranslations("common");
 
   return (
     <aside className="hidden lg:flex flex-col w-60 min-h-screen border-r border-border bg-card sticky top-0">
@@ -60,7 +66,7 @@ export function Sidebar() {
                   )}
                 >
                   <item.icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
+                  <span>{tNav(item.key)}</span>
                   {item.highlight && !active && (
                     <span className="ml-auto w-2 h-2 rounded-full bg-primary" />
                   )}
@@ -83,8 +89,9 @@ export function Sidebar() {
           )}
         >
           <Settings className="w-4 h-4" />
-          <span>Настройки</span>
+          <span>{tNav("settings")}</span>
         </Link>
+        <LanguageSwitcher />
         <button
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150"
@@ -92,7 +99,14 @@ export function Sidebar() {
           {resolvedTheme === "dark"
             ? <Sun className="w-4 h-4" />
             : <Moon className="w-4 h-4" />}
-          <span>{resolvedTheme === "dark" ? "Светлая тема" : "Тёмная тема"}</span>
+          <span>{resolvedTheme === "dark" ? tCommon("themeLight") : tCommon("themeDark")}</span>
+        </button>
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>{tCommon("logout")}</span>
         </button>
       </div>
     </aside>

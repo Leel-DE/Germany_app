@@ -86,8 +86,8 @@ export default function SettingsPage() {
           Добавьте ключи в <code className="bg-muted px-1 py-0.5 rounded text-xs">.env.local</code>:<br />
           • <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code><br />
           • <code className="text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code><br />
-          • <code className="text-xs">AI_PROVIDER</code> = <code className="text-xs">gemini</code>, <code className="text-xs">openai</code> или <code className="text-xs">anthropic</code><br />
-          • <code className="text-xs">GEMINI_API_KEY</code>, <code className="text-xs">OPENAI_API_KEY</code> или <code className="text-xs">ANTHROPIC_API_KEY</code>
+          • <code className="text-xs">AI_PROVIDER</code> = <code className="text-xs">xai</code>, <code className="text-xs">gemini</code>, <code className="text-xs">openai</code> или <code className="text-xs">anthropic</code><br />
+          • <code className="text-xs">XAI_API_KEY</code>, <code className="text-xs">GEMINI_API_KEY</code>, <code className="text-xs">OPENAI_API_KEY</code> или <code className="text-xs">ANTHROPIC_API_KEY</code>
         </p>
       </div>
 

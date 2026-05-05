@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types";
+import { useTranslations } from "next-intl";
 
 const QUICK_PROMPTS = [
   "Объясни разницу между weil и denn",
@@ -16,6 +17,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function AITutorPage() {
+  const t = useTranslations("aiTutor");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -53,14 +55,14 @@ export default function AITutorPage() {
         role: "assistant",
         content: res.ok
           ? data.response
-          : data.error ?? "Извините, произошла ошибка. Проверьте настройку API ключа.",
+          : data.error ?? t("apiError"),
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch {
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "Не удалось подключиться к AI. Проверьте AI_PROVIDER и API ключ в .env.local",
+        content: t("connectionError"),
         timestamp: new Date().toISOString(),
       }]);
     } finally {
@@ -83,8 +85,8 @@ export default function AITutorPage() {
           <Bot className="w-5 h-5 text-secondary" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">AI-тьютор</h1>
-          <p className="text-xs text-muted-foreground">Объясняю немецкий на русском языке</p>
+          <h1 className="text-lg font-bold">{t("title")}</h1>
+          <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
         </div>
       </div>
 
@@ -124,7 +126,7 @@ export default function AITutorPage() {
             </div>
             <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Думаю...</span>
+              <span className="text-sm text-muted-foreground">{t("thinking")}</span>
             </div>
           </div>
         )}
@@ -136,7 +138,7 @@ export default function AITutorPage() {
         <div className="shrink-0 pb-3">
           <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            Быстрые вопросы
+            {t("quickPrompts")}
           </p>
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {QUICK_PROMPTS.map((prompt) => (
@@ -158,7 +160,7 @@ export default function AITutorPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Задай вопрос по немецкому... (Enter — отправить)"
+          placeholder={t("inputPlaceholder")}
           className="min-h-[52px] max-h-[120px] resize-none text-sm"
           rows={1}
         />

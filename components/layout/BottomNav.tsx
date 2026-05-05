@@ -3,17 +3,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, BookOpen, Layers, GraduationCap, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 const mobileNav = [
-  { href: "/home", icon: LayoutDashboard, label: "Главная" },
-  { href: "/vocabulary", icon: BookOpen, label: "Словарь" },
-  { href: "/daily-plan", icon: Layers, label: "Занятие", primary: true },
-  { href: "/grammar", icon: GraduationCap, label: "Грамматика" },
-  { href: "/progress", icon: BarChart2, label: "Прогресс" },
-];
+  { href: "/home", icon: LayoutDashboard, key: "home" },
+  { href: "/vocabulary", icon: BookOpen, key: "vocabulary" },
+  { href: "/daily-plan", icon: Layers, key: "dailyPlan", primary: true },
+  { href: "/grammar", icon: GraduationCap, key: "grammar" },
+  { href: "/progress", icon: BarChart2, key: "progress" },
+] as const;
 
 export function BottomNav() {
   const pathname = usePathname();
+  const tNav = useTranslations("navigation");
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border safe-area-inset-bottom">
@@ -40,7 +42,7 @@ export function BottomNav() {
                   <item.icon className="w-5 h-5" />
                 )}
                 {!item.primary && (
-                  <span className="text-[10px] font-medium leading-none">{item.label}</span>
+                  <span className="text-[10px] font-medium leading-none">{tNav(item.key)}</span>
                 )}
               </Link>
             </li>
