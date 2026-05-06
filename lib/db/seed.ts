@@ -80,13 +80,18 @@ async function seedPlacement(db: Db) {
 
 async function seedWriting(db: Db) {
   const coll = db.collection(COLL.writingTasks);
-  if (await coll.estimatedDocumentCount()) return;
-  await coll.insertMany(
-    SEED_WRITING_TASKS.map((item) => ({
-      _id: new ObjectId(),
-      ...item,
-    })),
-    { ordered: false }
+  const now = new Date();
+  await Promise.all(
+    SEED_WRITING_TASKS.map((item) =>
+      coll.updateOne(
+        { title: item.title },
+        {
+          $set: { ...item, updatedAt: now },
+          $setOnInsert: { _id: new ObjectId(), createdAt: now },
+        },
+        { upsert: true }
+      )
+    )
   );
 }
 
