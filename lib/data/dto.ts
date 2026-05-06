@@ -7,6 +7,9 @@ import type {
   UserVocabularyProgressDoc,
   VocabularyDoc,
   WritingTaskDoc,
+  UserWritingDraftDoc,
+  UserWritingProgressDoc,
+  UserWritingSubmissionDoc,
 } from "@/lib/models/types";
 
 export function vocabularyDTO(word: VocabularyDoc, progress?: UserVocabularyProgressDoc | null) {
@@ -130,16 +133,66 @@ export function dailyPlanDTO(plan: DailyPlanDoc) {
   };
 }
 
-export function writingTaskDTO(task: WritingTaskDoc) {
+export function writingTaskDTO(task: WritingTaskDoc, progress?: UserWritingProgressDoc | null) {
+  const instructions = task.instructions ?? task.prompt ?? "";
+  const usefulPhrases = task.useful_phrases ?? task.key_phrases ?? [];
+  const idealAnswer = task.ideal_answer ?? task.example ?? "";
   return {
     id: task._id.toString(),
     title: task.title,
     type: task.type,
     topic: task.topic,
     cefr_level: task.cefr_level,
-    prompt: task.prompt,
-    structure: task.structure,
-    example: task.example,
-    key_phrases: task.key_phrases,
+    instructions,
+    requirements: task.requirements ?? [],
+    hints: task.hints ?? [],
+    useful_phrases: usefulPhrases,
+    min_words: task.min_words ?? 60,
+    estimated_minutes: task.estimated_minutes ?? 12,
+    ideal_answer: idealAnswer,
+    structure: task.structure ?? null,
+    // legacy mirrors
+    prompt: instructions,
+    example: idealAnswer,
+    key_phrases: usefulPhrases,
+    progress: progress ? writingProgressDTO(progress) : null,
+  };
+}
+
+export function writingProgressDTO(progress: UserWritingProgressDoc) {
+  return {
+    id: progress._id.toString(),
+    task_id: progress.taskId.toString(),
+    status: progress.status,
+    best_score: progress.bestScore,
+    attempts_count: progress.attemptsCount,
+    last_submission_id: progress.lastSubmissionId?.toString() ?? null,
+    weak_areas: progress.weakAreas ?? [],
+    completed_at: progress.completedAt?.toISOString() ?? null,
+    updated_at: progress.updatedAt.toISOString(),
+  };
+}
+
+export function writingDraftDTO(draft: UserWritingDraftDoc) {
+  return {
+    id: draft._id.toString(),
+    task_id: draft.taskId.toString(),
+    text: draft.text,
+    updated_at: draft.updatedAt.toISOString(),
+  };
+}
+
+export function writingSubmissionDTO(sub: UserWritingSubmissionDoc) {
+  return {
+    id: sub._id.toString(),
+    task_id: sub.taskId?.toString() ?? null,
+    attempt_number: sub.attemptNumber ?? 1,
+    content: sub.content,
+    feedback: sub.feedback,
+    score: sub.score,
+    estimated_level: sub.estimatedLevel ?? null,
+    weak_areas: sub.weakAreas ?? [],
+    errors_count: sub.errorsCount,
+    submitted_at: sub.submittedAt.toISOString(),
   };
 }

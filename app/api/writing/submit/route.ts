@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/currentUser";
 import { recordProgressActivity } from "@/lib/data/progressTracking";
 import { userWritingSubmissionsColl } from "@/lib/models/collections";
+import type { UserWritingSubmissionDoc } from "@/lib/models/types";
 
 const SubmitSchema = z.object({
   taskId: z.string().optional(),
@@ -19,20 +20,31 @@ export async function POST(req: NextRequest) {
   const parsed = SubmitSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid writing submission" }, { status: 400 });
 
-  const doc = {
+  const taskObjectId =
+    parsed.data.taskId && ObjectId.isValid(parsed.data.taskId) ? new ObjectId(parsed.data.taskId) : null;
+  const submissionsColl = await userWritingSubmissionsColl();
+  const previousAttempts = taskObjectId
+    ? await submissionsColl.countDocuments({ userId: auth.user._id, taskId: taskObjectId })
+    : 0;
+  const feedback = (parsed.data.feedback ?? null) as UserWritingSubmissionDoc["feedback"];
+  const errorsArray = Array.isArray((feedback as { errors?: unknown[] } | null)?.errors)
+    ? ((feedback as { errors: unknown[] }).errors as unknown[])
+    : null;
+  const doc: UserWritingSubmissionDoc = {
     _id: new ObjectId(),
     userId: auth.user._id,
-    taskId: parsed.data.taskId && ObjectId.isValid(parsed.data.taskId) ? new ObjectId(parsed.data.taskId) : null,
+    taskId: taskObjectId,
+    attemptNumber: previousAttempts + 1,
     content: parsed.data.text,
-    feedback: parsed.data.feedback as never,
+    feedback,
     score: parsed.data.score ?? null,
-    errorsCount: Array.isArray((parsed.data.feedback as { errors?: unknown[] } | null)?.errors)
-      ? ((parsed.data.feedback as { errors: unknown[] }).errors.length)
-      : null,
+    estimatedLevel: null,
+    weakAreas: [],
+    errorsCount: errorsArray ? errorsArray.length : null,
     submittedAt: new Date(),
   };
 
-  await (await userWritingSubmissionsColl()).insertOne(doc);
+  await submissionsColl.insertOne(doc);
   await recordProgressActivity(auth.user._id, {
     writingsDone: 1,
     minutesStudied: Math.max(5, Math.ceil(parsed.data.text.length / 120)),

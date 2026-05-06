@@ -342,6 +342,45 @@ export interface OnboardingQuestionDoc {
 }
 
 // ─── WRITING ────────────────────────────────────────────────────────────────
+export type WritingTaskType =
+  | "formal_email"
+  | "informal_message"
+  | "complaint"
+  | "request"
+  | "application"
+  | "appointment"
+  | "opinion_text"
+  | "exam_letter"
+  // legacy values kept for backward compatibility with existing seed/data
+  | "formal"
+  | "informal";
+
+export type WritingTopic =
+  | "Wohnung"
+  | "Arbeit"
+  | "Behörden"
+  | "Krankenkasse"
+  | "Arzt"
+  | "Bewerbung"
+  | "Jobcenter"
+  | "Einkauf"
+  | "Reise"
+  | "Ausbildung"
+  | "Studium"
+  | "Alltag"
+  | string;
+
+export type WritingErrorType =
+  | "grammar"
+  | "vocabulary"
+  | "word_order"
+  | "article"
+  | "case"
+  | "spelling"
+  | "style";
+
+export type WritingErrorSeverity = "low" | "medium" | "high";
+
 export interface WritingStructurePart {
   name: string;
   example: string;
@@ -351,42 +390,94 @@ export interface WritingStructurePart {
 export interface WritingTaskDoc {
   _id: ObjectId;
   title: string;
-  type: "formal" | "informal" | "application";
-  topic: string;
+  type: WritingTaskType;
+  topic: WritingTopic;
   cefr_level: CEFRLevel;
-  prompt: string;
-  structure: { parts: WritingStructurePart[] };
-  example: string;
-  key_phrases: string[];
+  /** Long instructions / prompt text shown to user. */
+  instructions: string;
+  /** Bullet list of concrete requirements (must mention X, ask for Y, ...). */
+  requirements: string[];
+  /** Hints for the user (style, structure, things to avoid). */
+  hints: string[];
+  /** Useful German phrases to copy-paste / inspire. */
+  useful_phrases: string[];
+  /** Minimum word count. */
+  min_words: number;
+  /** Estimated time in minutes to complete. */
+  estimated_minutes: number;
+  /** Ideal / sample answer in German (full text). */
+  ideal_answer: string;
+
+  // ─── legacy fields, kept so existing seed remains valid ─────────────────
+  /** @deprecated use `instructions` */
+  prompt?: string;
+  /** Optional explicit structure breakdown. */
+  structure?: { parts: WritingStructurePart[] };
+  /** @deprecated use `ideal_answer` */
+  example?: string;
+  /** @deprecated use `useful_phrases` */
+  key_phrases?: string[];
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface WritingError {
+  type: WritingErrorType;
   original: string;
-  correction: string;
-  explanation: string;
-  rule: string;
-  severity: "critical" | "important" | "minor";
+  correct: string;
+  explanationRu: string;
+  severity: WritingErrorSeverity;
 }
 
 export interface WritingFeedback {
-  overall_score: number;
-  level_assessment: CEFRLevel;
+  score: number;
+  estimatedLevel: CEFRLevel;
+  summary: string;
+  correctedText: string;
+  improvedVersion: string;
   errors: WritingError[];
-  style_tips: string[];
-  structure_feedback: string;
-  positive_feedback: string;
-  suggested_phrases: string[];
+  strengths: string[];
+  suggestions: string[];
+  weakAreas: string[];
+  usefulPhrases: string[];
 }
+
+export type UserWritingProgressStatus = "new" | "in_progress" | "completed";
 
 export interface UserWritingSubmissionDoc {
   _id: ObjectId;
   userId: ObjectId;
   taskId: ObjectId | null;
+  attemptNumber: number;
   content: string;
   feedback: WritingFeedback | null;
   score: number | null;
+  estimatedLevel: CEFRLevel | null;
+  weakAreas: string[];
   errorsCount: number | null;
   submittedAt: Date;
+}
+
+export interface UserWritingDraftDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  taskId: ObjectId;
+  text: string;
+  updatedAt: Date;
+}
+
+export interface UserWritingProgressDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  taskId: ObjectId;
+  status: UserWritingProgressStatus;
+  bestScore: number | null;
+  attemptsCount: number;
+  lastSubmissionId: ObjectId | null;
+  weakAreas: string[];
+  completedAt: Date | null;
+  updatedAt: Date;
 }
 
 // ─── STATS ──────────────────────────────────────────────────────────────────

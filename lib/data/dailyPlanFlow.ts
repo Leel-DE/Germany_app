@@ -405,13 +405,22 @@ async function completeReading(user: UserDoc, step: PlanStep, payload: unknown) 
 async function completeWriting(user: UserDoc, step: PlanStep, payload: unknown) {
   const text = isRecord(payload) && typeof payload.text === "string" ? payload.text.trim() : "";
   if (text.length < 30) throw new FlowError("Writing text is too short", 400);
-  await (await userWritingSubmissionsColl()).insertOne({
+  const taskObjectId =
+    step.templateId && ObjectId.isValid(step.templateId) ? new ObjectId(step.templateId) : null;
+  const submissionsColl = await userWritingSubmissionsColl();
+  const previousAttempts = taskObjectId
+    ? await submissionsColl.countDocuments({ userId: user._id, taskId: taskObjectId })
+    : 0;
+  await submissionsColl.insertOne({
     _id: new ObjectId(),
     userId: user._id,
-    taskId: step.templateId && ObjectId.isValid(step.templateId) ? new ObjectId(step.templateId) : null,
+    taskId: taskObjectId,
+    attemptNumber: previousAttempts + 1,
     content: text,
     feedback: null,
     score: null,
+    estimatedLevel: null,
+    weakAreas: [],
     errorsCount: null,
     submittedAt: new Date(),
   });

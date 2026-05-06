@@ -85,6 +85,16 @@ export async function ensureIndexes(db: Db): Promise<void> {
     ]),
     db.collection("user_writing_submissions").createIndexes([
       { key: { userId: 1, submittedAt: -1 }, name: "user_recent" },
+      { key: { userId: 1, taskId: 1, submittedAt: -1 }, name: "user_task_recent" },
+    ]),
+    db.collection("user_writing_drafts").createIndexes([
+      { key: { userId: 1, taskId: 1 }, unique: true, name: "uniq_user_task" },
+      { key: { userId: 1, updatedAt: -1 }, name: "user_recent" },
+    ]),
+    db.collection("user_writing_progress").createIndexes([
+      { key: { userId: 1, taskId: 1 }, unique: true, name: "uniq_user_task" },
+      { key: { userId: 1, updatedAt: -1 }, name: "user_recent" },
+      { key: { userId: 1, status: 1 }, name: "user_status" },
     ]),
     db.collection("daily_stats").createIndexes([
       { key: { userId: 1, date: 1 }, unique: true, name: "uniq_user_date" },

@@ -15,6 +15,8 @@ import type {
   UserTestResultDoc,
   WritingTaskDoc,
   UserWritingSubmissionDoc,
+  UserWritingDraftDoc,
+  UserWritingProgressDoc,
   DailyStatsDoc,
   FocusedPracticeSessionDoc,
 } from "./types";
@@ -34,6 +36,8 @@ export const COLL = {
   userTestResults: "user_test_results",
   writingTasks: "writing_tasks",
   userWritingSubmissions: "user_writing_submissions",
+  userWritingDrafts: "user_writing_drafts",
+  userWritingProgress: "user_writing_progress",
   dailyStats: "daily_stats",
   focusedPracticeSessions: "focused_practice_sessions",
 } as const;
@@ -79,6 +83,12 @@ export async function writingTasksColl(): Promise<Collection<WritingTaskDoc>> {
 }
 export async function userWritingSubmissionsColl(): Promise<Collection<UserWritingSubmissionDoc>> {
   return (await getDb()).collection<UserWritingSubmissionDoc>(COLL.userWritingSubmissions);
+}
+export async function userWritingDraftsColl(): Promise<Collection<UserWritingDraftDoc>> {
+  return (await getDb()).collection<UserWritingDraftDoc>(COLL.userWritingDrafts);
+}
+export async function userWritingProgressColl(): Promise<Collection<UserWritingProgressDoc>> {
+  return (await getDb()).collection<UserWritingProgressDoc>(COLL.userWritingProgress);
 }
 export async function dailyStatsColl(): Promise<Collection<DailyStatsDoc>> {
   return (await getDb()).collection<DailyStatsDoc>(COLL.dailyStats);
