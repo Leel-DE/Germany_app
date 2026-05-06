@@ -1,17 +1,24 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Layers, GraduationCap, BarChart2 } from "lucide-react";
+import { LayoutDashboard, BookOpen, Layers, GraduationCap, BarChart2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
-const mobileNav = [
+type MobileNavItem = {
+  href: string;
+  icon: LucideIcon;
+  key: "home" | "vocabulary" | "dailyPlan" | "grammar" | "progress";
+  primary?: boolean;
+};
+
+const mobileNav: readonly MobileNavItem[] = [
   { href: "/home", icon: LayoutDashboard, key: "home" },
   { href: "/vocabulary", icon: BookOpen, key: "vocabulary" },
   { href: "/daily-plan", icon: Layers, key: "dailyPlan", primary: true },
   { href: "/grammar", icon: GraduationCap, key: "grammar" },
   { href: "/progress", icon: BarChart2, key: "progress" },
-] as const;
+];
 
 export function BottomNav() {
   const pathname = usePathname();

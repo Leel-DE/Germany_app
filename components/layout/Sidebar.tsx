@@ -3,7 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, Layers, GraduationCap, FileText,
-  Headphones, Mic, ClipboardList, Bot, BarChart2, Settings, Flame, Sun, Moon, LogOut
+  Headphones, Mic, ClipboardList, Bot, BarChart2, Settings, Flame, Sun, Moon, LogOut,
+  type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/providers/ThemeProvider";
@@ -11,7 +12,26 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useTranslations } from "next-intl";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 
-const navItems = [
+type NavItem = {
+  href: string;
+  icon: LucideIcon;
+  key:
+    | "home"
+    | "dailyPlan"
+    | "vocabulary"
+    | "srs"
+    | "grammar"
+    | "writing"
+    | "reading"
+    | "listening"
+    | "speaking"
+    | "tests"
+    | "aiTutor"
+    | "progress";
+  highlight?: boolean;
+};
+
+const navItems: readonly NavItem[] = [
   { href: "/home", icon: LayoutDashboard, key: "home" },
   { href: "/daily-plan", icon: Layers, key: "dailyPlan", highlight: true },
   { href: "/vocabulary", icon: BookOpen, key: "vocabulary" },
@@ -24,7 +44,7 @@ const navItems = [
   { href: "/tests", icon: ClipboardList, key: "tests" },
   { href: "/ai-tutor", icon: Bot, key: "aiTutor" },
   { href: "/progress", icon: BarChart2, key: "progress" },
-] as const;
+];
 
 export function Sidebar() {
   const pathname = usePathname();

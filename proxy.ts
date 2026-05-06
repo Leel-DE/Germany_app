@@ -26,7 +26,7 @@ const isPublic = (pathname: string): boolean => {
   return false;
 };
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (isPublic(pathname)) return NextResponse.next();
@@ -69,7 +69,7 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Run middleware on all routes except:
+     * Run proxy on all routes except:
      *  - _next/static, _next/image, favicon (static assets)
      */
     "/((?!_next/static|_next/image|favicon.ico|icon-192.png|icon-512.png|manifest.json).*)",
