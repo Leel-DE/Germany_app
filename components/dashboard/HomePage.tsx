@@ -52,6 +52,8 @@ interface DashboardResponse {
     grammar_completed: number;
     reading_completed: number;
     writing_submissions: number;
+    last_writing_score: number | null;
+    last_test_score: number | null;
     accuracy_percent: number;
     level_progress_percent: number;
   };
@@ -299,12 +301,13 @@ function QuickStats({ stats, tDashboard }: { stats: DashboardResponse["stats"]; 
     { label: tDashboard("quickStatsReviews"), value: stats.due_reviews, icon: Flame },
     { label: tDashboard("quickStatsGrammar"), value: stats.grammar_completed, icon: GraduationCap },
     { label: tDashboard("quickStatsReading"), value: stats.reading_completed, icon: BookOpen },
-    { label: tDashboard("quickStatsWriting"), value: stats.writing_submissions, icon: PenLine },
+    { label: tDashboard("quickStatsWriting"), value: stats.last_writing_score === null ? stats.writing_submissions : `${stats.last_writing_score}/100`, icon: PenLine },
+    { label: "Last test", value: stats.last_test_score === null ? "—" : `${stats.last_test_score}%`, icon: BarChart3 },
     { label: tDashboard("quickStatsAccuracy"), value: `${stats.accuracy_percent}%`, icon: TrendingUp },
   ];
 
   return (
-    <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+    <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
       {cards.map(({ label, value, icon: Icon }) => (
         <div key={label} className="rounded-lg border border-border bg-card p-3">
           <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">

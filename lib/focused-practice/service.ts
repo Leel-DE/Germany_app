@@ -49,6 +49,31 @@ export const TOPIC_MAP: Record<string, {
     label: "Artikel",
     practiceType: "grammar",
   },
+  perfekt: {
+    type: "grammar",
+    label: "Perfekt",
+    practiceType: "grammar",
+  },
+  wortstellung: {
+    type: "grammar",
+    label: "Wortstellung",
+    practiceType: "grammar",
+  },
+  "word-order": {
+    type: "grammar",
+    label: "Word order",
+    practiceType: "grammar",
+  },
+  "alltag-vocabulary": {
+    type: "vocabulary",
+    label: "Alltag vocabulary",
+    practiceType: "vocabulary",
+  },
+  "arbeit-vocabulary": {
+    type: "vocabulary",
+    label: "Arbeit vocabulary",
+    practiceType: "vocabulary",
+  },
 };
 
 export interface CurrentRecommendation {

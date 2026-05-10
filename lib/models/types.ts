@@ -326,6 +326,66 @@ export interface UserTestResultDoc {
   takenAt: Date;
 }
 
+// ─── TESTS ──────────────────────────────────────────────────────────────────
+export type TestSkill = "grammar" | "vocabulary" | "reading" | "listening" | "mixed";
+export type TestType = "placement" | "practice" | "exam";
+export type TestStatus = "new" | "completed";
+export type TestAttemptStatus = "in_progress" | "completed";
+export type TestQuestionType =
+  | "multiple_choice"
+  | "true_false"
+  | "fill_blank"
+  | "sentence_order"
+  | "matching"
+  | "short_answer"
+  | "reading_question"
+  | "listening_question";
+export type TestAnswer = number | boolean | string | string[];
+
+export interface TestDoc {
+  _id: ObjectId;
+  title: string;
+  level: CEFRLevel;
+  skill: TestSkill;
+  type: TestType;
+  timeLimit: number | null;
+  questionsCount: number;
+  description: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TestQuestionDoc {
+  _id: ObjectId;
+  testId: ObjectId;
+  order: number;
+  type: TestQuestionType;
+  question: string;
+  options: string[];
+  correctAnswer: TestAnswer;
+  explanation: string;
+  level: CEFRLevel;
+  skill: TestSkill;
+  topic: string;
+}
+
+export interface UserTestAttemptDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  testId: ObjectId;
+  answers: Record<string, TestAnswer>;
+  score: number | null;
+  correct: number | null;
+  total: number;
+  estimatedLevel: CEFRLevel | null;
+  weakAreas: string[];
+  strongAreas: string[];
+  status: TestAttemptStatus;
+  startedAt: Date;
+  completedAt: Date | null;
+  timeSpent: number | null;
+}
+
 export interface OnboardingQuestionDoc {
   _id: ObjectId;
   order: number;
@@ -342,51 +402,103 @@ export interface OnboardingQuestionDoc {
 }
 
 // ─── WRITING ────────────────────────────────────────────────────────────────
-export interface WritingStructurePart {
-  name: string;
-  example: string;
-  tip: string;
-}
+export type WritingTopic =
+  | "Wohnung"
+  | "Arbeit"
+  | "Behörden"
+  | "Krankenkasse"
+  | "Arzt"
+  | "Bewerbung"
+  | "Jobcenter"
+  | "Einkauf"
+  | "Reise"
+  | "Ausbildung"
+  | "Studium"
+  | "Alltag";
+
+export type WritingTaskType =
+  | "formal_email"
+  | "informal_message"
+  | "complaint"
+  | "request"
+  | "application"
+  | "appointment"
+  | "opinion_text"
+  | "exam_letter";
+
+export type WritingProgressStatus = "new" | "in_progress" | "completed";
+export type WritingErrorType = "grammar" | "vocabulary" | "word_order" | "article" | "case" | "spelling" | "style";
+export type WritingErrorSeverity = "low" | "medium" | "high";
 
 export interface WritingTaskDoc {
   _id: ObjectId;
   title: string;
-  type: "formal" | "informal" | "application";
-  topic: string;
-  cefr_level: CEFRLevel;
-  prompt: string;
-  structure: { parts: WritingStructurePart[] };
-  example: string;
-  key_phrases: string[];
+  level: CEFRLevel;
+  topic: WritingTopic;
+  type: WritingTaskType;
+  instructions: string;
+  requirements: string[];
+  hints: string[];
+  usefulPhrases: string[];
+  minWords: number;
+  estimatedMinutes: number;
+  idealAnswer: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface WritingError {
+export interface WritingFeedbackError {
+  type: WritingErrorType;
   original: string;
-  correction: string;
-  explanation: string;
-  rule: string;
-  severity: "critical" | "important" | "minor";
+  correct: string;
+  explanationRu: string;
+  severity: WritingErrorSeverity;
 }
 
 export interface WritingFeedback {
-  overall_score: number;
-  level_assessment: CEFRLevel;
-  errors: WritingError[];
-  style_tips: string[];
-  structure_feedback: string;
-  positive_feedback: string;
-  suggested_phrases: string[];
+  score: number;
+  estimatedLevel: CEFRLevel;
+  summary: string;
+  correctedText: string;
+  improvedVersion: string;
+  errors: WritingFeedbackError[];
+  strengths: string[];
+  suggestions: string[];
+  weakAreas: string[];
+  usefulPhrases: string[];
+}
+
+export interface UserWritingDraftDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  taskId: ObjectId;
+  text: string;
+  updatedAt: Date;
 }
 
 export interface UserWritingSubmissionDoc {
   _id: ObjectId;
   userId: ObjectId;
-  taskId: ObjectId | null;
-  content: string;
-  feedback: WritingFeedback | null;
-  score: number | null;
-  errorsCount: number | null;
-  submittedAt: Date;
+  taskId: ObjectId;
+  attemptNumber: number;
+  text: string;
+  aiFeedback: WritingFeedback;
+  score: number;
+  estimatedLevel: CEFRLevel;
+  weakAreas: string[];
+  createdAt: Date;
+}
+
+export interface UserWritingProgressDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  taskId: ObjectId;
+  status: WritingProgressStatus;
+  bestScore: number | null;
+  attemptsCount: number;
+  lastSubmissionId: ObjectId | null;
+  completedAt: Date | null;
+  updatedAt: Date;
 }
 
 // ─── STATS ──────────────────────────────────────────────────────────────────

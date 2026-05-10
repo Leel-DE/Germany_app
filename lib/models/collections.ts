@@ -13,6 +13,11 @@ import type {
   PlacementQuestionDoc,
   OnboardingQuestionDoc,
   UserTestResultDoc,
+  TestDoc,
+  TestQuestionDoc,
+  UserTestAttemptDoc,
+  UserWritingDraftDoc,
+  UserWritingProgressDoc,
   WritingTaskDoc,
   UserWritingSubmissionDoc,
   DailyStatsDoc,
@@ -32,8 +37,13 @@ export const COLL = {
   placementQuestions: "placement_questions",
   onboardingQuestions: "onboarding_questions",
   userTestResults: "user_test_results",
+  tests: "tests",
+  testQuestions: "test_questions",
+  userTestAttempts: "user_test_attempts",
   writingTasks: "writing_tasks",
+  userWritingDrafts: "user_writing_drafts",
   userWritingSubmissions: "user_writing_submissions",
+  userWritingProgress: "user_writing_progress",
   dailyStats: "daily_stats",
   focusedPracticeSessions: "focused_practice_sessions",
 } as const;
@@ -74,11 +84,26 @@ export async function onboardingQuestionsColl(): Promise<Collection<OnboardingQu
 export async function userTestResultsColl(): Promise<Collection<UserTestResultDoc>> {
   return (await getDb()).collection<UserTestResultDoc>(COLL.userTestResults);
 }
+export async function testsColl(): Promise<Collection<TestDoc>> {
+  return (await getDb()).collection<TestDoc>(COLL.tests);
+}
+export async function testQuestionsColl(): Promise<Collection<TestQuestionDoc>> {
+  return (await getDb()).collection<TestQuestionDoc>(COLL.testQuestions);
+}
+export async function userTestAttemptsColl(): Promise<Collection<UserTestAttemptDoc>> {
+  return (await getDb()).collection<UserTestAttemptDoc>(COLL.userTestAttempts);
+}
 export async function writingTasksColl(): Promise<Collection<WritingTaskDoc>> {
   return (await getDb()).collection<WritingTaskDoc>(COLL.writingTasks);
 }
+export async function userWritingDraftsColl(): Promise<Collection<UserWritingDraftDoc>> {
+  return (await getDb()).collection<UserWritingDraftDoc>(COLL.userWritingDrafts);
+}
 export async function userWritingSubmissionsColl(): Promise<Collection<UserWritingSubmissionDoc>> {
   return (await getDb()).collection<UserWritingSubmissionDoc>(COLL.userWritingSubmissions);
+}
+export async function userWritingProgressColl(): Promise<Collection<UserWritingProgressDoc>> {
+  return (await getDb()).collection<UserWritingProgressDoc>(COLL.userWritingProgress);
 }
 export async function dailyStatsColl(): Promise<Collection<DailyStatsDoc>> {
   return (await getDb()).collection<DailyStatsDoc>(COLL.dailyStats);

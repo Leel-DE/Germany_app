@@ -10,8 +10,10 @@ import {
   readingTextsColl,
   userGrammarProgressColl,
   userReadingProgressColl,
+  userTestAttemptsColl,
   userTestResultsColl,
   userVocabProgressColl,
+  userWritingProgressColl,
   userWritingSubmissionsColl,
   vocabularyColl,
   writingTasksColl,
@@ -34,7 +36,9 @@ export async function GET() {
     readingTotal,
     readingCompleted,
     writingTasksTotal,
+    writingProgress,
     writingSubmissions,
+    latestTestAttempt,
     stats,
     latestPlacement,
   ] = await Promise.all([
@@ -46,7 +50,9 @@ export async function GET() {
     (await readingTextsColl()).countDocuments(visibleSystemOrUserFilter(userId)),
     (await userReadingProgressColl()).countDocuments({ userId, status: "completed" }),
     (await writingTasksColl()).countDocuments({}),
-    (await userWritingSubmissionsColl()).find({ userId }).sort({ submittedAt: -1 }).limit(20).toArray(),
+    (await userWritingProgressColl()).find({ userId }).toArray(),
+    (await userWritingSubmissionsColl()).find({ userId, createdAt: { $exists: true } }).sort({ createdAt: -1 }).limit(20).toArray(),
+    (await userTestAttemptsColl()).findOne({ userId, status: "completed" }, { sort: { completedAt: -1 } }),
     (await dailyStatsColl()).find({ userId }).sort({ date: -1 }).limit(30).toArray(),
     (await userTestResultsColl()).findOne({ userId }, { sort: { takenAt: -1 } }),
   ]);
@@ -54,7 +60,8 @@ export async function GET() {
   const knownWords = vocabProgress.filter((row) => row.status === "known" || row.status === "review").length;
   const dueReviews = vocabProgress.filter((row) => row.dueDate <= today && row.status !== "suspended").length;
   const grammarCompleted = grammarProgress.filter((row) => row.status === "completed").length;
-  const writingCompleted = writingSubmissions.length;
+  const writingCompleted = writingProgress.filter((row) => row.status === "completed").length;
+  const lastWritingScore = writingSubmissions[0]?.score ?? null;
   const accuracyTotals = stats.reduce(
     (acc, row) => ({
       correct: acc.correct + row.correctAnswers,
@@ -68,6 +75,8 @@ export async function GET() {
   const weakAreas = await buildWeakAreas(userId, grammarProgress, vocabProgress, [
     ...auth.user.weakGrammarAreas,
     ...(latestPlacement?.weakAreas ?? []),
+    ...(latestTestAttempt?.weakAreas ?? []),
+    ...writingSubmissions.flatMap((row) => row.weakAreas),
   ]);
   const currentRecommendation = await getCurrentRecommendation(auth.user);
   const lastActivity = await buildLastActivity(userId);
@@ -114,6 +123,8 @@ export async function GET() {
       grammar_completed: grammarCompleted,
       reading_completed: readingCompleted,
       writing_submissions: writingCompleted,
+      last_writing_score: lastWritingScore,
+      last_test_score: latestTestAttempt?.score ?? null,
       accuracy_percent: avgAccuracy,
       level_progress_percent: scoreLevelProgress(auth.user.currentGermanLevel, auth.user.targetGermanLevel, knownWords),
     },
@@ -242,7 +253,7 @@ async function buildLastActivity(userId: ObjectId) {
     (await userVocabProgressColl()).find({ userId }).sort({ addedAt: -1 }).limit(5).toArray(),
     (await userGrammarProgressColl()).find({ userId, status: "completed" }).sort({ completedAt: -1 }).limit(5).toArray(),
     (await userReadingProgressColl()).find({ userId, status: "completed" }).sort({ completedAt: -1 }).limit(5).toArray(),
-    (await userWritingSubmissionsColl()).find({ userId }).sort({ submittedAt: -1 }).limit(5).toArray(),
+    (await userWritingSubmissionsColl()).find({ userId, createdAt: { $exists: true } }).sort({ createdAt: -1 }).limit(5).toArray(),
   ]);
 
   const [words, grammarTopics, readingTexts] = await Promise.all([
@@ -276,8 +287,8 @@ async function buildLastActivity(userId: ObjectId) {
     ...writingRows.map((row) => ({
       type: "Submitted writing",
       title: "Writing submission",
-      occurred_at: row.submittedAt.toISOString(),
-      href: "/writing",
+      occurred_at: row.createdAt.toISOString(),
+      href: `/writing/${row.taskId.toString()}`,
     })),
   ];
 

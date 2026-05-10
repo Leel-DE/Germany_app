@@ -7,20 +7,22 @@ export async function GET() {
   if ("response" in auth) return auth.response;
 
   const submissions = await (await userWritingSubmissionsColl())
-    .find({ userId: auth.user._id })
-    .sort({ submittedAt: -1 })
+    .find({ userId: auth.user._id, createdAt: { $exists: true } })
+    .sort({ createdAt: -1 })
     .limit(50)
     .toArray();
 
   return NextResponse.json({
     submissions: submissions.map((item) => ({
       id: item._id.toString(),
-      taskId: item.taskId?.toString() ?? null,
-      content: item.content,
-      feedback: item.feedback,
+      taskId: item.taskId.toString(),
+      attemptNumber: item.attemptNumber,
+      text: item.text,
+      aiFeedback: item.aiFeedback,
       score: item.score,
-      errorsCount: item.errorsCount,
-      submittedAt: item.submittedAt.toISOString(),
+      estimatedLevel: item.estimatedLevel,
+      weakAreas: item.weakAreas,
+      createdAt: item.createdAt.toISOString(),
     })),
   });
 }

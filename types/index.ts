@@ -191,53 +191,83 @@ export interface DailyPlan {
 
 // ─── Writing ──────────────────────────────────────────────────────────────────
 
-export interface WritingStructurePart {
-  name: string;
-  example: string;
-  tip: string;
-}
+export type WritingTopic =
+  | "Wohnung"
+  | "Arbeit"
+  | "Behörden"
+  | "Krankenkasse"
+  | "Arzt"
+  | "Bewerbung"
+  | "Jobcenter"
+  | "Einkauf"
+  | "Reise"
+  | "Ausbildung"
+  | "Studium"
+  | "Alltag";
+export type WritingTaskType =
+  | "formal_email"
+  | "informal_message"
+  | "complaint"
+  | "request"
+  | "application"
+  | "appointment"
+  | "opinion_text"
+  | "exam_letter";
+export type WritingProgressStatus = "new" | "in_progress" | "completed";
 
 export interface WritingTemplate {
   id: string;
   title: string;
-  type: "formal" | "informal" | "application";
-  topic: string;
+  level: CEFRLevel;
   cefr_level: CEFRLevel;
+  topic: WritingTopic;
+  type: WritingTaskType;
+  instructions: string;
   prompt: string;
-  structure: { parts: WritingStructurePart[] };
-  example: string;
+  requirements: string[];
+  hints: string[];
+  usefulPhrases: string[];
   key_phrases: string[];
-  vocabulary_ids?: string[];
+  minWords: number;
+  estimatedMinutes: number;
+  idealAnswer: string;
+  status: WritingProgressStatus;
+  lastScore: number | null;
+  attemptsCount: number;
+  lastSubmissionId: string | null;
 }
 
 export interface WritingError {
+  type: "grammar" | "vocabulary" | "word_order" | "article" | "case" | "spelling" | "style";
   original: string;
-  correction: string;
-  explanation: string;
-  rule: string;
-  severity: "critical" | "important" | "minor";
+  correct: string;
+  explanationRu: string;
+  severity: "low" | "medium" | "high";
 }
 
 export interface WritingFeedback {
-  overall_score: number;
-  level_assessment: CEFRLevel;
+  score: number;
+  estimatedLevel: CEFRLevel;
+  summary: string;
+  correctedText: string;
+  improvedVersion: string;
   errors: WritingError[];
-  style_tips: string[];
-  structure_feedback: string;
-  positive_feedback: string;
-  suggested_phrases: string[];
+  strengths: string[];
+  suggestions: string[];
+  weakAreas: string[];
+  usefulPhrases: string[];
 }
 
 export interface UserWriting {
   id: string;
-  user_id: string;
-  template_id?: string;
-  content: string;
-  ai_feedback?: WritingFeedback;
-  score?: number;
-  errors_count?: number;
-  written_at: string;
-  template?: WritingTemplate;
+  taskId: string;
+  attemptNumber: number;
+  text: string;
+  aiFeedback: WritingFeedback;
+  score: number;
+  estimatedLevel: CEFRLevel;
+  weakAreas: string[];
+  createdAt: string;
 }
 
 // ─── Progress & Stats ─────────────────────────────────────────────────────────

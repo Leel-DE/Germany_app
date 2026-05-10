@@ -3,11 +3,12 @@ import {
   dailyPlansColl,
   grammarTopicsColl,
   readingTextsColl,
+  testsColl,
   userVocabProgressColl,
   vocabularyColl,
   writingTasksColl,
 } from "@/lib/models/collections";
-import type { CEFRLevel, DailyPlanDoc, PlanStep, UserDoc, VocabularyDoc } from "@/lib/models/types";
+import type { CEFRLevel, DailyPlanDoc, PlanStep, UserDoc, VocabularyDoc, WritingTaskDoc, WritingTopic } from "@/lib/models/types";
 
 export function todayKey(date = new Date()): string {
   return date.toISOString().slice(0, 10);
@@ -78,11 +79,12 @@ export async function ensureInitialVocabulary(user: UserDoc, count = 25): Promis
 export async function generateDailyPlan(user: UserDoc, date = todayKey()): Promise<DailyPlanDoc> {
   await ensureInitialVocabulary(user);
 
-  const [progress, grammarTopics, readingTexts, writingTasks, plans] = await Promise.all([
+  const [progress, grammarTopics, readingTexts, writingTasks, tests, plans] = await Promise.all([
     userVocabProgressColl(),
     grammarTopicsColl(),
     readingTextsColl(),
     writingTasksColl(),
+    testsColl(),
     dailyPlansColl(),
   ]);
 
@@ -105,10 +107,16 @@ export async function generateDailyPlan(user: UserDoc, date = todayKey()): Promi
     cefr_level: { $in: ["A1", "A2", user.currentGermanLevel] },
     ...(user.preferredTopics.length ? { topic: { $in: user.preferredTopics } } : {}),
   }) ?? await readingTexts.findOne({ $or: [{ isSystem: true }, { createdBy: user._id }] });
-  const writing = await writingTasks.findOne({
-    ...(user.preferredTopics.length ? { topic: { $in: user.preferredTopics } } : {}),
-    cefr_level: { $in: ["A1", "A2", user.currentGermanLevel] },
-  }) ?? await writingTasks.findOne({});
+  const writingFilter: Filter<WritingTaskDoc> = {
+    ...(user.preferredTopics.length ? { topic: { $in: user.preferredTopics as WritingTopic[] } } : {}),
+    level: { $in: ["A1", "A2", user.currentGermanLevel] },
+  };
+  const writing = await writingTasks.findOne(writingFilter) ?? await writingTasks.findOne({});
+  const test = await tests.findOne({
+    type: { $in: ["practice", "placement"] },
+    level: { $in: ["A1", "A2", user.currentGermanLevel] },
+    skill: { $in: ["grammar", "vocabulary", "mixed"] },
+  }) ?? await tests.findOne({});
   const focusAreas = [...new Set([...user.weakSkills, ...user.weakGrammarAreas])].slice(0, 5);
 
   const steps: PlanStep[] = [
@@ -138,13 +146,16 @@ export async function generateDailyPlan(user: UserDoc, date = todayKey()): Promi
   }
 
   if (writing) {
-    steps.push(createStep(4, "writing", `Writing: ${writing.title}`, 10, {
+    steps.push(createStep(4, "writing", `Writing: ${writing.title}`, writing.estimatedMinutes, {
       templateId: writing._id.toString(),
       topic: writing.topic,
     }));
   }
 
-  steps.push(createStep(5, "test", "Mixed mini test", 6, { focusAreas }));
+  steps.push(createStep(5, "test", test ? `Test: ${test.title}` : "Mixed mini test", test?.timeLimit ?? 6, {
+    focusAreas,
+    testId: test?._id.toString(),
+  }));
 
   const now = new Date();
   const plan: DailyPlanDoc = {

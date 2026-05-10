@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { dailyPlanDTO, grammarDTO, readingTextDTO, vocabularyDTO, writingTaskDTO } from "@/lib/data/dto";
+import { dailyPlanDTO, grammarDTO, readingTextDTO, testDTO, vocabularyDTO, writingTaskDTO } from "@/lib/data/dto";
 import { recordProgressActivity } from "@/lib/data/progressTracking";
 import { calculateNextReview } from "@/lib/srs/sm2";
 import {
@@ -7,10 +7,13 @@ import {
   grammarTopicsColl,
   placementQuestionsColl,
   readingTextsColl,
+  testsColl,
   srsReviewsColl,
+  userTestAttemptsColl,
   userGrammarProgressColl,
   userReadingProgressColl,
   userVocabProgressColl,
+  userWritingProgressColl,
   userWritingSubmissionsColl,
   vocabularyColl,
   writingTasksColl,
@@ -195,6 +198,11 @@ async function enrichStep(step: PlanStep, index: number) {
   }
 
   if (normalized.type === "test") {
+    const testId = typeof payload.testId === "string" ? payload.testId : null;
+    if (testId && ObjectId.isValid(testId)) {
+      const test = await (await testsColl()).findOne({ _id: new ObjectId(testId) });
+      return { ...normalized, payload: { ...payload, test: test ? testDTO(test) : null } };
+    }
     const questions = await (await placementQuestionsColl())
       .find({})
       .sort({ order: 1 })
@@ -404,23 +412,48 @@ async function completeReading(user: UserDoc, step: PlanStep, payload: unknown) 
 
 async function completeWriting(user: UserDoc, step: PlanStep, payload: unknown) {
   const text = isRecord(payload) && typeof payload.text === "string" ? payload.text.trim() : "";
-  if (text.length < 30) throw new FlowError("Writing text is too short", 400);
-  await (await userWritingSubmissionsColl()).insertOne({
-    _id: new ObjectId(),
-    userId: user._id,
-    taskId: step.templateId && ObjectId.isValid(step.templateId) ? new ObjectId(step.templateId) : null,
-    content: text,
-    feedback: null,
-    score: null,
-    errorsCount: null,
-    submittedAt: new Date(),
-  });
-  const minutes = Math.max(step.estimatedMinutes, Math.ceil(text.length / 120));
-  await recordProgressActivity(user._id, { writingsDone: 1, minutesStudied: minutes });
-  return { timeSpentMinutes: minutes };
+  const score = isRecord(payload) && typeof payload.score === "number" ? Math.max(0, Math.min(100, payload.score)) : null;
+  if (!step.templateId || !ObjectId.isValid(step.templateId)) throw new FlowError("Writing task is missing task id", 400);
+  const taskId = new ObjectId(step.templateId);
+  const latest = await (await userWritingSubmissionsColl()).findOne({ userId: user._id, taskId, createdAt: { $exists: true } }, { sort: { createdAt: -1 } });
+  if (!latest && text.length < 30) throw new FlowError("Complete the writing task in the Writing module first", 400);
+  const minutes = Math.max(step.estimatedMinutes, Math.ceil((latest?.text.length ?? text.length) / 120));
+  await (await userWritingProgressColl()).updateOne(
+    { userId: user._id, taskId },
+    {
+      $set: {
+        status: "completed",
+        bestScore: Math.max(latest?.score ?? score ?? 0, 0),
+        attemptsCount: latest?.attemptNumber ?? 0,
+        lastSubmissionId: latest?._id ?? null,
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      },
+      $setOnInsert: { _id: new ObjectId(), userId: user._id, taskId },
+    },
+    { upsert: true }
+  );
+  return {
+    correctAnswers: Math.round((latest?.score ?? score ?? 0) / 10),
+    totalAnswers: 10,
+    accuracy: latest?.score ?? score ?? 0,
+    timeSpentMinutes: minutes,
+  };
 }
 
 async function completeTest(user: UserDoc, step: PlanStep, payload: unknown) {
+  const testIdRaw = typeof step.payload.testId === "string" ? step.payload.testId : null;
+  if (testIdRaw && ObjectId.isValid(testIdRaw)) {
+    const testId = new ObjectId(testIdRaw);
+    const latest = await (await userTestAttemptsColl()).findOne({ userId: user._id, testId, status: "completed" }, { sort: { completedAt: -1 } });
+    if (!latest) throw new FlowError("Complete this test in the Tests module first", 400);
+    return {
+      correctAnswers: latest.correct ?? 0,
+      totalAnswers: latest.total,
+      accuracy: latest.score ?? 0,
+      timeSpentMinutes: Math.max(step.estimatedMinutes, Math.ceil((latest.timeSpent ?? 0) / 60)),
+    };
+  }
   const answers = isRecord(payload) && isRecord(payload.answers) ? payload.answers : {};
   const questions = await (await placementQuestionsColl()).find({}).sort({ order: 1 }).limit(8).toArray();
   const correct = questions.reduce((sum, question) => sum + (Number(answers[question._id.toString()]) === question.answer ? 1 : 0), 0);

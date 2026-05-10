@@ -78,9 +78,21 @@ type ReadingDTO = {
 };
 
 type WritingDTO = {
+  id: string;
   title: string;
   prompt: string;
-  structure: { parts: { name: string; example: string; tip: string }[] };
+  minWords: number;
+  estimatedMinutes: number;
+};
+
+type TestDTO = {
+  id: string;
+  title: string;
+  level: string;
+  skill: string;
+  type: string;
+  questionsCount: number;
+  timeLimit: number | null;
 };
 
 type MixedQuestion = {
@@ -398,7 +410,6 @@ function ReadingTask({ task, saving, onComplete }: TaskProps) {
 
 function WritingTask({ task, saving, onComplete }: TaskProps) {
   const writing = getPayload<WritingDTO>(task, "task");
-  const [text, setText] = useState("");
 
   if (!writing) return <MissingTaskData saving={saving} onComplete={onComplete} />;
 
@@ -407,17 +418,35 @@ function WritingTask({ task, saving, onComplete }: TaskProps) {
       <div className="rounded-lg border border-border bg-background p-4">
         <h3 className="font-semibold">{writing.title}</h3>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{writing.prompt}</p>
+        <p className="mt-3 text-xs text-muted-foreground">Minimum {writing.minWords} words · {writing.estimatedMinutes} min</p>
       </div>
-      <Textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Write your answer in German..." className="min-h-40" />
-      <TaskFooter saving={saving} disabled={text.trim().length < 30} onComplete={() => onComplete({ text })} label="Submit writing" />
+      <Button asChild className="w-full">
+        <Link href={`/writing/${writing.id}`}>Open Writing module</Link>
+      </Button>
+      <TaskFooter saving={saving} disabled={false} onComplete={() => onComplete({})} label="Mark after AI feedback" />
     </div>
   );
 }
 
 function MixedTestTask({ task, saving, onComplete }: TaskProps) {
+  const test = getPayload<TestDTO>(task, "test");
   const questions = getPayload<MixedQuestion[]>(task, "questions") ?? [];
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const answered = Object.keys(answers).length >= questions.length;
+
+  if (test) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-border bg-background p-4">
+          <h3 className="font-semibold">{test.title}</h3>
+          <p className="mt-2 text-sm text-muted-foreground">{test.level} · {test.skill} · {test.questionsCount} questions</p>
+          <p className="mt-1 text-xs text-muted-foreground">{test.timeLimit ? `${test.timeLimit} min limit` : "No timer"}</p>
+        </div>
+        <Button asChild className="w-full"><Link href={`/tests/${test.id}`}>Open Tests module</Link></Button>
+        <TaskFooter saving={saving} disabled={false} onComplete={() => onComplete({})} label="Mark after test" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

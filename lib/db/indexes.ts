@@ -13,6 +13,12 @@ export async function ensureIndexes(db: Db): Promise<void> {
     key: { createdBy: 1, german: 1 },
     partialFilterExpression: { isSystem: false },
   });
+  await dropIndexIfConflicting(db, "writing_tasks", "topic_level", {
+    key: { topic: 1, level: 1, type: 1 },
+  });
+  await dropIndexIfConflicting(db, "user_writing_submissions", "user_recent", {
+    key: { userId: 1, createdAt: -1 },
+  });
 
   await Promise.all([
     db.collection("users").createIndexes([
@@ -80,11 +86,33 @@ export async function ensureIndexes(db: Db): Promise<void> {
     db.collection("user_test_results").createIndexes([
       { key: { userId: 1, takenAt: -1 }, name: "user_recent" },
     ]),
+    db.collection("tests").createIndexes([
+      { key: { level: 1, skill: 1, type: 1 }, name: "level_skill_type" },
+      { key: { title: 1 }, unique: true, name: "uniq_title" },
+    ]),
+    db.collection("test_questions").createIndexes([
+      { key: { testId: 1, order: 1 }, unique: true, name: "uniq_test_order" },
+      { key: { level: 1, skill: 1, topic: 1 }, name: "level_skill_topic" },
+    ]),
+    db.collection("user_test_attempts").createIndexes([
+      { key: { userId: 1, testId: 1, startedAt: -1 }, name: "user_test_recent" },
+      { key: { userId: 1, status: 1, startedAt: -1 }, name: "user_status_recent" },
+    ]),
     db.collection("writing_tasks").createIndexes([
-      { key: { topic: 1, cefr_level: 1 }, name: "topic_level" },
+      { key: { topic: 1, level: 1, type: 1 }, name: "topic_level_type" },
+      { key: { title: "text", instructions: "text", topic: "text" }, name: "writing_search" },
+    ]),
+    db.collection("user_writing_drafts").createIndexes([
+      { key: { userId: 1, taskId: 1 }, unique: true, name: "uniq_user_task_draft" },
+      { key: { userId: 1, updatedAt: -1 }, name: "user_recent" },
     ]),
     db.collection("user_writing_submissions").createIndexes([
-      { key: { userId: 1, submittedAt: -1 }, name: "user_recent" },
+      { key: { userId: 1, createdAt: -1 }, name: "user_recent" },
+      { key: { userId: 1, taskId: 1, attemptNumber: 1 }, unique: true, name: "uniq_user_task_attempt" },
+    ]),
+    db.collection("user_writing_progress").createIndexes([
+      { key: { userId: 1, taskId: 1 }, unique: true, name: "uniq_user_task_progress" },
+      { key: { userId: 1, status: 1, updatedAt: -1 }, name: "user_status_recent" },
     ]),
     db.collection("daily_stats").createIndexes([
       { key: { userId: 1, date: 1 }, unique: true, name: "uniq_user_date" },

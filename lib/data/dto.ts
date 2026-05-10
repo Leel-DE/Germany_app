@@ -5,6 +5,8 @@ import type {
   UserReadingProgressDoc,
   UserGrammarProgressDoc,
   UserVocabularyProgressDoc,
+  UserWritingProgressDoc,
+  TestDoc,
   VocabularyDoc,
   WritingTaskDoc,
 } from "@/lib/models/types";
@@ -130,16 +132,41 @@ export function dailyPlanDTO(plan: DailyPlanDoc) {
   };
 }
 
-export function writingTaskDTO(task: WritingTaskDoc) {
+export function writingTaskDTO(task: WritingTaskDoc, progress?: UserWritingProgressDoc | null) {
   return {
     id: task._id.toString(),
     title: task.title,
-    type: task.type,
+    level: task.level,
+    cefr_level: task.level,
     topic: task.topic,
-    cefr_level: task.cefr_level,
-    prompt: task.prompt,
-    structure: task.structure,
-    example: task.example,
-    key_phrases: task.key_phrases,
+    type: task.type,
+    instructions: task.instructions,
+    prompt: task.instructions,
+    requirements: task.requirements,
+    hints: task.hints,
+    usefulPhrases: task.usefulPhrases,
+    key_phrases: task.usefulPhrases,
+    minWords: task.minWords,
+    estimatedMinutes: task.estimatedMinutes,
+    idealAnswer: task.idealAnswer,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+    status: progress?.status ?? "new",
+    lastScore: progress?.bestScore ?? null,
+    attemptsCount: progress?.attemptsCount ?? 0,
+    lastSubmissionId: progress?.lastSubmissionId?.toString() ?? null,
+  };
+}
+
+export function testDTO(test: TestDoc) {
+  return {
+    id: test._id.toString(),
+    title: test.title,
+    level: test.level,
+    skill: test.skill,
+    type: test.type,
+    timeLimit: test.timeLimit,
+    questionsCount: test.questionsCount,
+    description: test.description,
   };
 }
